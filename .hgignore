@@ -1,5 +1,8 @@
+# use glob syntax.
+syntax: glob
 *.pyc
 *.egg
+*.egg-info
 .tox
 .idea/workspace.xml
 .DS_Store
