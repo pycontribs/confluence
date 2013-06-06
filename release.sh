@@ -16,9 +16,10 @@ if ! python setup.py test; then
 fi
 
 echo === Chechink that all changes are commited and pushed ===
-git pull -u
+hg pull
+hg update
 
-git diff
+hg diff
 # Disallow unstaged changes in the working tree
     if ! git diff-files --check --exit-code --ignore-submodules -- >&2
     then
@@ -48,9 +49,9 @@ rm -rf build dist MANIFEST &> /dev/null
 #python setup.py register sdist build_sphinx upload upload_sphinx
 python setup.py register sdist upload
 
-git tag -f -a $VERSION -m "Version $VERSION"
-git tag -f -a RELEASE -m "Current RELEASE"
+hg tag -f -a $VERSION -m "Version $VERSION"
+hg tag -f -a RELEASE -m "Current RELEASE"
 
-git push origin --tags
+hg push origin --tags
 
 echo "done."
