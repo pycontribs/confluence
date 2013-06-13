@@ -8,7 +8,9 @@ __email__ = "sorin(dot)sbarnea(at)gmail.com"
 __status__ = "Production"
 from version import __version__, __date__
 
-#__all__ = []
+from confluence import Confluence
+
+__all__ = ['confluence']
 
 """
 Tendo is tested with Python 2.6-3.2

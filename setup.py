@@ -22,7 +22,7 @@ try:
 except ImportError:
     pass
 
-test_requirements = ['pep8>=0.6', 'py', 'pytest', 'six', 'sphinx']  # 'nosexcover']
+test_requirements = ['pep8>=0.6', 'py', 'pytest', 'six', 'sphinx','BeautifulSoup']  # 'nosexcover']
 test_suite = "py.test"
 if sys.hexversion >= 0x02060000:
     # requirements.extend(['nose-machineout'])
@@ -104,7 +104,7 @@ setup(
                 'Topic :: Internet',
         ],
     long_description=open('README.md').read(),
-    setup_requires=['tox'],  # ,'nosexcover'],
+    setup_requires=['tox','BeautifulSoup'],  # ,'nosexcover'],
     tests_require=test_requirements,  # autopep8 removed because it does not install on python2.5
     test_suite=test_suite,
     cmdclass={'test': Tox},

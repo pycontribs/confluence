@@ -4,10 +4,17 @@ set -ex
 VERSION=$(python -c "from confluence.version import __version__ ; print __version__")
 echo Preparing to release version $VERSION
 
-
 #source tox
+# --upgrade
+pip install --user pep8 autopep8 docutils sphinx Sphinx-PyPI-upload
 
-#pip install --upgrade pep8 autopep8 docutils
+echo === Building documentation ===
+#make html singlehtml text
+if ! python setup.py build_sphinx; then
+	echo "The documentation build suite failed. Fix it!"
+    cd ..
+	exit 1
+fi
 
 echo === Testings ===
 if ! python setup.py test; then
@@ -21,7 +28,7 @@ hg update
 
 hg diff
 # Disallow unstaged changes in the working tree
-    if ! git diff-files --check --exit-code --ignore-submodules -- >&2
+    if ! hg diff-files --check --exit-code --ignore-submodules -- >&2
     then
         echo >&2 "error: you have unstaged changes."
         #git diff-files --check --exit-code --ignore-submodules -- >&2
@@ -47,7 +54,7 @@ rm -rf build dist MANIFEST &> /dev/null
 # python setup.py register sdist bdist_wininst upload
 
 #python setup.py register sdist build_sphinx upload upload_sphinx
-python setup.py register sdist upload
+python setup.py register sdist upload upload_sphinx
 
 hg tag -f -a $VERSION -m "Version $VERSION"
 hg tag -f -a RELEASE -m "Current RELEASE"
