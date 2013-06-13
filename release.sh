@@ -28,20 +28,11 @@ hg update
 
 hg diff
 # Disallow unstaged changes in the working tree
-    if ! hg diff-files --check --exit-code --ignore-submodules -- >&2
-    then
-        echo >&2 "error: you have unstaged changes."
-        #git diff-files --check --exit-code --ignore-submodules -- >&2
-        exit 1
-    fi
-
-# Disallow uncommitted changes in the index
-    if ! git diff-index --cached --exit-code -r --ignore-submodules HEAD -- >&2
-    then
-        echo >&2 "error: your index contains uncommitted changes."
-        exit 1
-    fi
-
+if [ -n "$(hg status -mar)" ]
+then
+    echo >&2 "error: your index contains uncommitted changes."
+    exit 1
+fi
 
 echo "Please don't run this as a user. This generates a new release for PyPI. Press ^C to exit or Enter to continue."
 read
