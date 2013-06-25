@@ -4,6 +4,7 @@ import os
 import sys
 #import xml.etree.ElementTree as ElementTree
 import lxml.html
+from xml.dom.minidom import parse, parseString
 
 SAMPLE_WIKI = 'h4. Confluence Markup\n\n* A\n* B\n'
 SAMPLE_XML = """<h4>Confluence Markup</h4>
@@ -30,7 +31,6 @@ class ConfluenceTests(unittest.TestCase):
         #tree = ElementTree.fromstring(result)
         #html = lxml.html.fromstring(result)
 
-        from xml.dom.minidom import parse, parseString
         x=parseString(result)
         e = x.getElementById('Content')
         self.assertFalse(e is None, "Unable to find element with id=Content in: '%s'" % result)

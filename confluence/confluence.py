@@ -1,10 +1,22 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+
 import xmlrpclib
 from time import gmtime, strftime
+import json
+import copy
 import os
+import re
 import sys
+import ssl
 import ConfigParser
+
 import numbers
+import logging
+from xml.dom.minidom import parse, parseString
+import socket
+import lxml.html
 
 def attach_file(server, token, space, title, files):
     existing_page = server.confluence1.getPage(token, space, title)
@@ -14,7 +26,7 @@ def attach_file(server, token, space, title, files):
         try:
             server.confluence1.removeAttachment(token, existing_page["id"] , file)
         except:
-            print "Skipping exception in removeAttachment"
+            print("Skipping exception in removeAttachment")
         ty = "application/binary"
         if file.endswith("gif"):
             ty = "image/gif"
@@ -24,9 +36,9 @@ def attach_file(server, token, space, title, files):
         f = open(file, "rb")
         try:
             bytes = f.read()
-            print "calling addAttachment(%s, %s, %s, ...)" % (token, existing_page["id"], repr(attachment))
+            print("calling addAttachment(%s, %s, %s, ...)" % (token, existing_page["id"], repr(attachment)))
             server.confluence1.addAttachment(token, existing_page["id"], attachment, xmlrpclib.Binary(bytes))
-            print "done"
+            print("done")
         finally:
             f.close()
 
@@ -41,7 +53,7 @@ def remove_all_attachments(server, token, space, title):
     i = 0
     for file in files:
         filename = file['fileName']
-        print "Removing %d of %d (%s)..." % (i, numfiles, filename)
+        print("Removing %d of %d (%s)..." % (i, numfiles, filename))
         server.confluence1.removeAttachment(token, existing_page["id"], filename)
         i = i + 1
 
@@ -51,9 +63,9 @@ def write_page(server, token, space, title, content, parent=None):
         try:
             # Find out the ID of the parent page
             parent_id = server.confluence1.getPage(token, space, parent)['id']
-            print "parent page id is %s" % parent_id
+            print("parent page id is %s" % parent_id)
         except:
-            print "couldn't find parent page; ignoring error..."
+            print("couldn't find parent page; ignoring error...")
 
     try:
         existing_page = server.confluence1.getPage(token, space, title)
@@ -151,7 +163,9 @@ class Confluence(object):
         options['username'] =  username
         options['password'] = password
 
-        self._server = xmlrpclib.Server(options['server'] +  '/rpc/xmlrpc',allow_none=True) # using Server or ServerProxy ?
+        socket.setdefaulttimeout(120) # without this there is no timeout, and this may block the requests
+        # 60 - getPages() timeout one with this !
+        self._server = xmlrpclib.ServerProxy(options['server'] +  '/rpc/xmlrpc',allow_none=True) # using Server or ServerProxy ?
         #print self._server.system.listMethods()
 
         self._token = self._server.confluence1.login(username, password)
@@ -213,7 +227,7 @@ class Confluence(object):
             page = self._server.confluence1.storePage(self._token, data)
         return True
 
-    def renderContent(self, space, page):
+    def renderContent(self, space, page, a='', b=None):
         """
         Obtains the HTML content of a wiki page.
 
@@ -221,12 +235,24 @@ class Confluence(object):
         :param page:
         :return: string: HTML content
         """
-        if not isinstance(page, numbers.Integral):
-            page = self.getPageId(page=page, space=space)
-        if self._token2:
-            return self._server.confluence2.renderContent(self._token2,space,page,None)
-        else:
-            return self._server.confluence1.renderContent(self._token,space,page,None)
+        try:
+            if not page.isdigit(): #isinstance(page, numbers.Integral):
+                page = self.getPageId(page=page, space=space)
+            if self._token2:
+                return self._server.confluence2.renderContent(self._token2,space,page,a,b)
+            else:
+                return self._server.confluence1.renderContent(self._token,space,page,a,b)
+        #except Exception as e:
+        except ssl.SSLError, err:
+            logging.error("%s while retrieving page %s" % (err, page))
+            return None
+        except xmlrpclib.Fault, err:
+            #logging.error("Fault code: %d" % err.faultCode)
+            #logging.error("Fault string: %s" % err.faultString)
+            #self.getPage(page, )
+            logging.error("Failed call to renderContent('%s','%s') : %d : %s" % (space,page,err.faultCode,err.faultString))
+            raise err
+            #return ''
 
     def convertWikiToStorageFormat(self, markup):
         """
@@ -245,3 +271,75 @@ class Confluence(object):
         else:
             return self._server.confluence.convertWikiToStorageFormat(self._token2, markup)
             #raise NotImplementedError("You cannot convert Wiki to Storage ")
+
+    def getSpaces(self):
+        return self._server.confluence2.getSpaces(self._token2)
+
+    def getPages(self, space):
+        return self._server.confluence2.getPages(self._token2, space)
+
+    def getPagesWithErrors(self, stdout=True, caching=True):
+        result = []
+        cnt = 0
+        cnt_err = 0
+        stats = {}
+        try:
+            data = json.load(open('pages.json', 'r'))
+            pages = copy.deepcopy(data)
+            logging.info("%s pages loaded from cache." % len(pages.keys()))
+        except IOError:
+            data = {}
+            pages = {}
+            spaces = self.getSpaces()
+            for space in spaces:
+                logging.debug("Space %s" % space['key'])
+                for page in self.getPages(space=space['key']):
+                    pages[page['id']]=page['url']
+            logging.info("%s pages loaded from confluence." % len(pages.keys()))
+
+
+        for page in sorted(pages.keys()):
+            cnt += 1
+            # space['key']
+            renderedPage=self.renderContent(None,page,'',{'style':'clean'})
+            #dom = parseString(renderedPage)
+            #for e in dom.getElementsByTagName('div'):
+            #    if e.hasAttribute("class"):
+            #        if "error" in e.getAttributeNode('class').nodeValue:
+            #           print(e)
+            #        else:
+            #           print(e)
+            if not renderedPage:
+                if "Render failed" in stats:
+                    stats['Render failed'] += 1
+                else:
+                    stats['Render failed'] = 1
+                if stdout:
+                    print("\n%s" % page['url'])
+                cnt_err += 1
+                result.insert(-1,page['url'])
+                data[page]=pages[page]
+                continue
+            if renderedPage.find('<div class="error">') > 0:
+                t = re.findall('<div class="error">(.*?)</div>', renderedPage, re.IGNORECASE|re.MULTILINE)
+                for x in t:
+                    print("\n    %s" % t)
+                    if x not in stats:
+                        stats[x]=1
+                    else:
+                        stats[x]=stats[x]+1
+                if stdout:
+                    print("\n%s" % pages[page])
+                cnt_err += 1
+                result.insert(-1,pages[page])
+                data[page]=pages[page]
+            else:
+                print("\r [%s/%s]" % (cnt_err,cnt), end='')
+
+        json.dump(data, open('pages.json', 'w+'),  indent=1)
+
+        if stdout:
+            print("-- stats --")
+            for x in stats:
+                print("'%s' : %s" % (x,stats[x]))
+        return result
