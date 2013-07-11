@@ -2,7 +2,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
-import xmlrpclib
+try:
+    import xmlrpclib
+except ImportError:
+    import xmlrpc.client
+
+try:
+    import ConfigParser
+except ImportError:
+    import configparser
+
 from time import gmtime, strftime
 import json
 import copy
@@ -10,7 +19,7 @@ import os
 import re
 import sys
 import ssl
-import ConfigParser
+
 
 import numbers
 import logging
@@ -243,10 +252,10 @@ class Confluence(object):
             else:
                 return self._server.confluence1.renderContent(self._token,space,page,a,b)
         #except Exception as e:
-        except ssl.SSLError, err:
+        except ssl.SSLError as err:
             logging.error("%s while retrieving page %s" % (err, page))
             return None
-        except xmlrpclib.Fault, err:
+        except xmlrpclib.Fault as err:
             #logging.error("Fault code: %d" % err.faultCode)
             #logging.error("Fault string: %s" % err.faultString)
             #self.getPage(page, )
