@@ -5,12 +5,12 @@ from __future__ import print_function
 try:
     import xmlrpclib
 except ImportError:
-    import xmlrpc.client
+    import xmlrpc.client as xmlrpclib
 
 try:
     import ConfigParser
 except ImportError:
-    import configparser
+    import configparser as ConfigParser
 
 from time import gmtime, strftime
 import json
