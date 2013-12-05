@@ -201,6 +201,44 @@ class Confluence(object):
             page = self._server.confluence1.getPage(self._token, space, page)
         return page
 
+    def getBlogEntries(self, space):
+        """
+        Returns a page object as a Vector.
+
+        :param space:
+        """
+        if self._token2:
+            entries = self._server.confluence2.getBlogEntries(self._token2, space)
+        else:
+            entries = self._server.confluence1.getBlogEntries(self._token, space)
+        return entries        
+
+    def getBlogEntry(self, pageId):
+        """
+        Returns a blog page as a BlogEntry object.
+
+        :param pageId:
+        """
+        if self._token2:
+            entry  = self._server.confluence2.getBlogEntry(self._token2, pageId)
+        else:
+            entry  = self._server.confluence1.getBlogEntries(self._token, pageId)
+        return entry
+
+    def storeBlogEntry(self, entry):
+        """
+        Store or update blog content. 
+        (The BlogEntry given as an argument should have space, title and content fields at a minimum.)
+
+        :param entry:
+        :return: bool: True if succeeded
+        """
+        if self._token2:
+            blog = self._server.confluence2.storeBlogEntry(self._token2, entry)
+        else:
+            blog = self._server.confluence1.storeBlogEntry(self._token2, entry)
+        return True
+
     def getPageId(self, page, space):
         """
         Retuns the numeric id of a confluence page.
