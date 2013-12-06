@@ -231,13 +231,27 @@ class Confluence(object):
         (The BlogEntry given as an argument should have space, title and content fields at a minimum.)
 
         :param entry:
-        :return: bool: True if succeeded
+        :return: blogEntry: if succeeded
         """
         if self._token2:
-            blog = self._server.confluence2.storeBlogEntry(self._token2, entry)
+            blogEntry = self._server.confluence2.storeBlogEntry(self._token2, entry)
         else:
-            blog = self._server.confluence1.storeBlogEntry(self._token2, entry)
-        return True
+            blogEntry = self._server.confluence1.storeBlogEntry(self._token2, entry)
+        return blogEntry
+
+    def addLabelByName(self, labelName, objectId):
+        """
+        Adds label(s) to the object.
+
+        :param labelName (Tag Name)
+        :param objectId (Such as pageId)
+        :retuen: bool: True if succeeded
+        """
+        if self._token2:
+            ret = self._server.confluence2.addLabelByName(self._token2, labelName, objectId)
+        else:
+            ret = self._server.confluence1.addLabelByName(self._token, labelName, objectId)
+        return ret
 
     def getPageId(self, page, space):
         """
