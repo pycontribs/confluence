@@ -12,7 +12,6 @@ try:
 except ImportError:
     import configparser as ConfigParser
 
-from time import gmtime, strftime
 import json
 import copy
 import os
@@ -21,32 +20,28 @@ import sys
 import ssl
 
 
-import numbers
 import logging
-from xml.dom.minidom import parse, parseString
 import socket
-import lxml.html
 
 def attach_file(server, token, space, title, files):
     existing_page = server.confluence1.getPage(token, space, title)
-    now = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime())
 
-    for file in files.keys():
+    for filename in files.keys():
         try:
-            server.confluence1.removeAttachment(token, existing_page["id"] , file)
+            server.confluence1.removeAttachment(token, existing_page["id"] , filename)
         except:
             print("Skipping exception in removeAttachment")
         ty = "application/binary"
-        if file.endswith("gif"):
+        if filename.endswith("gif"):
             ty = "image/gif"
-        elif file.endswith("png"):
+        elif filename.endswith("png"):
             ty = "image/png"
-        attachment = { "fileName": file, "contentType": ty, "comment": files[file] }
-        f = open(file, "rb")
+        attachment = { "fileName": filename, "contentType": ty, "comment": files[filename] }
+        f = open(filename, "rb")
         try:
-            bytes = f.read()
+            byts = f.read()
             print("calling addAttachment(%s, %s, %s, ...)" % (token, existing_page["id"], repr(attachment)))
-            server.confluence1.addAttachment(token, existing_page["id"], attachment, xmlrpclib.Binary(bytes))
+            server.confluence1.addAttachment(token, existing_page["id"], attachment, xmlrpclib.Binary(byts))
             print("done")
         finally:
             f.close()
@@ -60,8 +55,8 @@ def remove_all_attachments(server, token, space, title):
     # Iterate through them all, removing each
     numfiles = len(files)
     i = 0
-    for file in files:
-        filename = file['fileName']
+    for f in files:
+        filename = f['fileName']
         print("Removing %d of %d (%s)..." % (i, numfiles, filename))
         server.confluence1.removeAttachment(token, existing_page["id"], filename)
         i = i + 1
@@ -138,14 +133,14 @@ class Confluence(object):
             Find the file named path in the sys.path.
             Returns the full path name if found, None if not found
             """
-            paths = ['.',os.path.expanduser('~')]
+            paths = ['.', os.path.expanduser('~')]
             paths.extend(sys.path)
             for dirname in paths:
                 possible = os.path.abspath(os.path.join(dirname, path))
                 if os.path.isfile(possible):
                     return possible
             return None
-        config = ConfigParser.SafeConfigParser(defaults={'user':None,'pass':None,'appid':None})
+        config = ConfigParser.SafeConfigParser(defaults={'user': None, 'pass': None, 'appid': appid})
 
         config_file = findfile('config.ini')
 
@@ -174,7 +169,7 @@ class Confluence(object):
 
         socket.setdefaulttimeout(120) # without this there is no timeout, and this may block the requests
         # 60 - getPages() timeout one with this !
-        self._server = xmlrpclib.ServerProxy(options['server'] +  '/rpc/xmlrpc',allow_none=True) # using Server or ServerProxy ?
+        self._server = xmlrpclib.ServerProxy(options['server'] +  '/rpc/xmlrpc', allow_none=True) # using Server or ServerProxy ?
         #print self._server.system.listMethods()
 
         self._token = self._server.confluence1.login(username, password)
@@ -300,18 +295,18 @@ class Confluence(object):
             if not page.isdigit(): #isinstance(page, numbers.Integral):
                 page = self.getPageId(page=page, space=space)
             if self._token2:
-                return self._server.confluence2.renderContent(self._token2,space,page,a,b)
+                return self._server.confluence2.renderContent(self._token2, space, page, a, b)
             else:
-                return self._server.confluence1.renderContent(self._token,space,page,a,b)
+                return self._server.confluence1.renderContent(self._token, space, page, a, b)
         #except Exception as e:
         except ssl.SSLError as err:
-            logging.error("%s while retrieving page %s" % (err, page))
+            logging.error("%s while retrieving page %s", err, page)
             return None
         except xmlrpclib.Fault as err:
             #logging.error("Fault code: %d" % err.faultCode)
             #logging.error("Fault string: %s" % err.faultString)
             #self.getPage(page, )
-            logging.error("Failed call to renderContent('%s','%s') : %d : %s" % (space,page,err.faultCode,err.faultString))
+            logging.error("Failed call to renderContent('%s','%s') : %d : %s", space, page, err.faultCode, err.faultString)
             raise err
             #return ''
 
@@ -344,25 +339,28 @@ class Confluence(object):
         cnt = 0
         cnt_err = 0
         stats = {}
-        try:
-            data = json.load(open('pages.json', 'r'))
-            pages = copy.deepcopy(data)
-            logging.info("%s pages loaded from cache." % len(pages.keys()))
-        except IOError:
-            data = {}
-            pages = {}
+        data = {}
+        pages = {}
+        if caching:
+            try:
+                data = json.load(open('pages.json', 'r'))
+                pages = copy.deepcopy(data)
+                logging.info("%s pages loaded from cache.", len(pages.keys()))
+            except IOError:
+                pass
+        if not data:
             spaces = self.getSpaces()
             for space in spaces:
-                logging.debug("Space %s" % space['key'])
+                logging.debug("Space %s", space['key'])
                 for page in self.getPages(space=space['key']):
-                    pages[page['id']]=page['url']
-            logging.info("%s pages loaded from confluence." % len(pages.keys()))
+                    pages[page['id']] = page['url']
+            logging.info("%s pages loaded from confluence.", len(pages.keys()))
 
 
         for page in sorted(pages.keys()):
             cnt += 1
             # space['key']
-            renderedPage=self.renderContent(None,page,'',{'style':'clean'})
+            renderedPage = self.renderContent(None, page, '', {'style':'clean'})
             #dom = parseString(renderedPage)
             #for e in dom.getElementsByTagName('div'):
             #    if e.hasAttribute("class"):
@@ -378,29 +376,29 @@ class Confluence(object):
                 if stdout:
                     print("\n%s" % page['url'])
                 cnt_err += 1
-                result.insert(-1,page['url'])
-                data[page]=pages[page]
+                result.insert(-1, page['url'])
+                data[page] = pages[page]
                 continue
             if renderedPage.find('<div class="error">') > 0:
                 t = re.findall('<div class="error">(.*?)</div>', renderedPage, re.IGNORECASE|re.MULTILINE)
                 for x in t:
                     print("\n    %s" % t)
                     if x not in stats:
-                        stats[x]=1
+                        stats[x] = 1
                     else:
-                        stats[x]=stats[x]+1
+                        stats[x] += 1
                 if stdout:
                     print("\n%s" % pages[page])
                 cnt_err += 1
-                result.insert(-1,pages[page])
-                data[page]=pages[page]
-            else:
-                print("\r [%s/%s]" % (cnt_err,cnt), end='')
+                result.insert(-1, pages[page])
+                data[page] = pages[page]
+            elif stdout:
+                print("\r [%s/%s]" % (cnt_err, cnt), end='')
 
         json.dump(data, open('pages.json', 'w+'),  indent=1)
 
         if stdout:
             print("-- stats --")
             for x in stats:
-                print("'%s' : %s" % (x,stats[x]))
+                print("'%s' : %s" % (x, stats[x]))
         return result
