@@ -262,7 +262,7 @@ class Confluence(object):
             page = self._server.confluence1.getPage(self._token, space, page)
         return page['id']
 
-    def storePageContent(self, page, space, content):
+    def storePageContent(self, page, space, content, convert_wiki=True):
         """
         Modifies the content of a Confluence page.
 
@@ -275,13 +275,12 @@ class Confluence(object):
         #print data
         data['content'] = content
         if self._token2:
-            content = self._server.confluence2.convertWikiToStorageFormat(self._token2, content)
-            #print content
+            if convert_wiki:
+                content = self._server.confluence2.convertWikiToStorageFormat(self._token2, content)
             data['content'] = content
-            page = self._server.confluence2.storePage(self._token2, data)
+            return self._server.confluence2.storePage(self._token2, data)
         else:
-            page = self._server.confluence1.storePage(self._token, data)
-        return True
+            return self._server.confluence1.storePage(self._token, data)
 
     def renderContent(self, space, page, a='', b=None):
         """
