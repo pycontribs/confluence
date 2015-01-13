@@ -28,21 +28,26 @@ def attach_file(server, token, space, title, files):
 
     for filename in files.keys():
         try:
-            server.confluence1.removeAttachment(token, existing_page["id"] , filename)
-        except:
-            print("Skipping exception in removeAttachment")
-        ty = "application/binary"
-        if filename.endswith("gif"):
-            ty = "image/gif"
-        elif filename.endswith("png"):
-            ty = "image/png"
-        attachment = { "fileName": filename, "contentType": ty, "comment": files[filename] }
+            server.confluence1.removeAttachment(token, existing_page["id"], filename)
+        except Exception:
+            logging.exception("Skipping exception in removeAttachment")
+        content_types = {
+            "gif": "image/gif",
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+        }
+        extension = os.path.spl(filename)[1]
+        ty = content_types.get(extension, "application/binary")
+        attachment = {"fileName": filename, "contentType": ty, "comment": files[filename]}
         f = open(filename, "rb")
         try:
             byts = f.read()
-            print("calling addAttachment(%s, %s, %s, ...)" % (token, existing_page["id"], repr(attachment)))
+            logging.info("calling addAttachment(%s, %s, %s, ...)", token, existing_page["id"], repr(attachment))
             server.confluence1.addAttachment(token, existing_page["id"], attachment, xmlrpclib.Binary(byts))
-            print("done")
+            logging.info("done")
+        except Exception:
+            logging.exception("Unable to attach %s", filename)
         finally:
             f.close()
 
