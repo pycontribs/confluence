@@ -23,6 +23,7 @@ import ssl
 import logging
 import socket
 
+# TODO: replace all of these with object methods. Leaving for backwards compatibility for now
 def attach_file(server, token, space, title, files):
     existing_page = server.confluence1.getPage(token, space, title)
 
@@ -153,7 +154,7 @@ class Confluence(object):
             if config_file:
                 config.read(config_file)
                 try:
-                    profile = config.get('general','default-confluence-profile')
+                    profile = config.get('general', 'default-confluence-profile')
                 except ConfigParser.NoOptionError:
                     pass
 
@@ -169,7 +170,7 @@ class Confluence(object):
 
         options = Confluence.DEFAULT_OPTIONS
         options['server'] = url
-        options['username'] =  username
+        options['username'] = username
         options['password'] = password
 
         socket.setdefaulttimeout(120) # without this there is no timeout, and this may block the requests
@@ -177,15 +178,12 @@ class Confluence(object):
         self._server = xmlrpclib.ServerProxy(options['server'] +  '/rpc/xmlrpc', allow_none=True) # using Server or ServerProxy ?
         #print self._server.system.listMethods()
 
+        # TODO: get rid of this split and just set self.server, self.token
         self._token = self._server.confluence1.login(username, password)
         try:
             self._token2 = self._server.confluence2.login(username, password)
-        except:
+        except xmlrpclib.Error:
             self._token2 = None
-
-        #return (server, token)
-
-        #return Confluence(options=options,basic_auth=(username,password))
 
     def getPage(self, page, space):
         """
@@ -201,6 +199,40 @@ class Confluence(object):
             page = self._server.confluence1.getPage(self._token, space, page)
         return page
 
+    def attachFile(self, page, space, files):
+        if self._token2:
+            server = self._server.confluence2
+            token = self._token2
+        else:
+            server = self._server.confluence1
+            token = self._token1
+        existing_page = server.getPage(token, space, page)
+        for filename in files.keys():
+            try:
+                server.removeAttachment(token, existing_page["id"], filename)
+            except xmlrpclib.Fault:
+                logging.info("No existing attachment to replace")
+            content_types = {
+                "gif": "image/gif",
+                "png": "image/png",
+                "jpg": "image/jpeg",
+                "jpeg": "image/jpeg",
+                "pdf": "application/pdf",
+            }
+            extension = os.path.split(filename)[1]
+            ty = content_types.get(extension, "application/binary")
+            attachment = {"fileName": filename, "contentType": ty, "comment": files[filename]}
+            f = open(filename, "rb")
+            try:
+                byts = f.read()
+                logging.info("calling addAttachment(%s, %s, %s, ...)", token, existing_page["id"], repr(attachment))
+                server.addAttachment(token, existing_page["id"], attachment, xmlrpclib.Binary(byts))
+                logging.info("done")
+            except xmlrpclib.Error:
+                logging.exception("Unable to attach %s", filename)
+            finally:
+                f.close()
+
     def getBlogEntries(self, space):
         """
         Returns a page object as a Vector.
@@ -211,7 +243,7 @@ class Confluence(object):
             entries = self._server.confluence2.getBlogEntries(self._token2, space)
         else:
             entries = self._server.confluence1.getBlogEntries(self._token, space)
-        return entries        
+        return entries
 
     def getBlogEntry(self, pageId):
         """
@@ -220,14 +252,14 @@ class Confluence(object):
         :param pageId:
         """
         if self._token2:
-            entry  = self._server.confluence2.getBlogEntry(self._token2, pageId)
+            entry = self._server.confluence2.getBlogEntry(self._token2, pageId)
         else:
-            entry  = self._server.confluence1.getBlogEntries(self._token, pageId)
+            entry = self._server.confluence1.getBlogEntries(self._token, pageId)
         return entry
 
     def storeBlogEntry(self, entry):
         """
-        Store or update blog content. 
+        Store or update blog content.
         (The BlogEntry given as an argument should have space, title and content fields at a minimum.)
 
         :param entry:
