@@ -299,7 +299,7 @@ class Confluence(object):
             page = self._server.confluence1.getPage(self._token, space, page)
         return page['id']
 
-    def storePageContent(self, page, space, content, convert_wiki=True):
+    def storePageContent(self, page, space, content, convert_wiki=True, parent_page=None):
         """
         Modifies the content of a Confluence page.
 
@@ -308,9 +308,22 @@ class Confluence(object):
         :param content:
         :return: bool: True if succeeded
         """
-        data = self.getPage(page, space)
+
+        try:
+            data = self.getPage(page, space)
+        except xmlrpclib.Fault:
+            data = {
+                "space": space,
+                "title": page
+            }
+
         #print data
         data['content'] = content
+
+        if parent_page:
+            parent_id = self.getPageId(parent_page, space)
+            data["parentId"] = parent_id
+
         if self._token2:
             if convert_wiki:
                 content = self._server.confluence2.convertWikiToStorageFormat(self._token2, content)
