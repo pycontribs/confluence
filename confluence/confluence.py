@@ -23,6 +23,7 @@ import ssl
 import logging
 import socket
 
+
 # TODO: replace all of these with object methods. Leaving for backwards compatibility for now
 def attach_file(server, token, space, title, files):
     existing_page = server.confluence1.getPage(token, space, title)
@@ -52,6 +53,7 @@ def attach_file(server, token, space, title, files):
         finally:
             f.close()
 
+
 def remove_all_attachments(server, token, space, title):
     existing_page = server.confluence1.getPage(token, space, title)
 
@@ -66,6 +68,7 @@ def remove_all_attachments(server, token, space, title):
         print("Removing %d of %d (%s)..." % (i, numfiles, filename))
         server.confluence1.removeAttachment(token, existing_page["id"], filename)
         i = i + 1
+
 
 def write_page(server, token, space, title, content, parent=None):
     parent_id = None
@@ -85,7 +88,7 @@ def write_page(server, token, space, title, content, parent=None):
         existing_page["space"] = space
         existing_page["title"] = title
 
-    if not parent_id is None:
+    if parent_id is not None:
         existing_page["parentId"] = parent_id
 
     existing_page["content"] = content
@@ -95,8 +98,10 @@ def write_page(server, token, space, title, content, parent=None):
 class WikiString(str):
     pass
 
+
 class XMLString(str):
     pass
+
 
 class Confluence(object):
 
@@ -189,8 +194,12 @@ class Confluence(object):
         """
         Returns a page object as a dictionary.
 
-        :param page:
-        :param space:
+        :param page: The page name
+        :type  page: ``str``
+
+        :param space: The space name
+        :type  space: ``str``
+
         :return: dictionary. result['content'] contains the body of the page.
         """
         if self._token2:
@@ -200,6 +209,18 @@ class Confluence(object):
         return page
 
     def attachFile(self, page, space, files):
+        """
+        Attach (upload) a file to a page
+
+        :param page: The page name
+        :type  page: ``str``
+
+        :param space: The space name
+        :type  space: ``str``
+
+        :param files: The files to upload
+        :type  files: ``dict`` where `key` is filename and `value` is the comment.
+        """
         if self._token2:
             server = self._server.confluence2
             token = self._token2
@@ -237,7 +258,8 @@ class Confluence(object):
         """
         Returns a page object as a Vector.
 
-        :param space:
+        :param space: The space name
+        :type  space: ``str``
         """
         if self._token2:
             entries = self._server.confluence2.getBlogEntries(self._token2, space)
@@ -262,8 +284,11 @@ class Confluence(object):
         Store or update blog content.
         (The BlogEntry given as an argument should have space, title and content fields at a minimum.)
 
-        :param entry:
-        :return: blogEntry: if succeeded
+        :param entry: Blog entry
+        :type  entry: ``str``
+
+        :rtype: ``bool``
+        :return: `true` if succeeded
         """
         if self._token2:
             blogEntry = self._server.confluence2.storeBlogEntry(self._token2, entry)
@@ -275,9 +300,14 @@ class Confluence(object):
         """
         Adds label(s) to the object.
 
-        :param labelName (Tag Name)
-        :param objectId (Such as pageId)
-        :retuen: bool: True if succeeded
+        :param labelName: Tag Name
+        :type  labelName: ``str``
+
+        :param objectId: Such as pageId
+        :type  objectId: ``str``
+
+        :rtype: ``bool``
+        :return: True if succeeded
         """
         if self._token2:
             ret = self._server.confluence2.addLabelByName(self._token2, labelName, objectId)
@@ -289,9 +319,14 @@ class Confluence(object):
         """
         Retuns the numeric id of a confluence page.
 
-        :param page:
-        :param space:
-        :return: Integer: page numeric id
+        :param page: The page name
+        :type  page: ``str``
+
+        :param space: The space name
+        :type  space: ``str``
+
+        :rtype: ``int``
+        :return: Page numeric id
         """
         if self._token2:
             page = self._server.confluence2.getPage(self._token2, space, page)
@@ -303,10 +338,23 @@ class Confluence(object):
         """
         Modifies the content of a Confluence page.
 
-        :param page:
-        :param space:
-        :param content:
-        :return: bool: True if succeeded
+        :param page: The page name
+        :type  page: ``str``
+
+        :param space: The space name
+        :type  space: ``str``
+
+        :param content: The page content (wiki markup or rich text)
+        :type  content: ``str``
+
+        :param convert_wiki: Convert content as wiki markup before updating
+        :type  convert_wiki: ``bool``
+
+        :param parent_page: The parent page name (optional)
+        :type  parent_page: ``str``
+
+        :rtype: ``bool``
+        :return: `True` if succeeded
         """
 
         try:
@@ -317,7 +365,6 @@ class Confluence(object):
                 "title": page
             }
 
-        #print data
         data['content'] = content
 
         if parent_page:
@@ -336,28 +383,27 @@ class Confluence(object):
         """
         Obtains the HTML content of a wiki page.
 
-        :param space:
-        :param page:
+        :param page: The page name
+        :type  page: ``str``
+
+        :param space: The space name
+        :type  space: ``str``
+
         :return: string: HTML content
         """
         try:
-            if not page.isdigit(): #isinstance(page, numbers.Integral):
+            if not page.isdigit():
                 page = self.getPageId(page=page, space=space)
             if self._token2:
                 return self._server.confluence2.renderContent(self._token2, space, page, a, b)
             else:
                 return self._server.confluence1.renderContent(self._token, space, page, a, b)
-        #except Exception as e:
         except ssl.SSLError as err:
             logging.error("%s while retrieving page %s", err, page)
             return None
         except xmlrpclib.Fault as err:
-            #logging.error("Fault code: %d" % err.faultCode)
-            #logging.error("Fault string: %s" % err.faultString)
-            #self.getPage(page, )
             logging.error("Failed call to renderContent('%s','%s') : %d : %s", space, page, err.faultCode, err.faultString)
             raise err
-            #return ''
 
     def convertWikiToStorageFormat(self, markup):
         """
@@ -368,22 +414,36 @@ class Confluence(object):
 
         Warning: this works only with Conflucence 4.0 or newer, on older versions it will raise an error.
 
-        :param markup:
-        :return:
+        :param markup: The wiki markup
+        :type  markup: ``str``
+
+        :rtype: ``str``
+        :return: the text to store (HTML)
         """
         if self._token2:
             return self._server.confluence2.convertWikiToStorageFormat(self._token2, markup)
         else:
             return self._server.confluence.convertWikiToStorageFormat(self._token2, markup)
-            #raise NotImplementedError("You cannot convert Wiki to Storage ")
 
     def getSpaces(self):
         return self._server.confluence2.getSpaces(self._token2)
 
     def getPages(self, space):
+        """
+        Get pages in a space
+
+        :param space: The space name
+        :type  space: ``str``
+
+        :rtype: ``list``
+        :return: a list of pages in a space
+        """
         return self._server.confluence2.getPages(self._token2, space)
 
     def getPagesWithErrors(self, stdout=True, caching=True):
+        """
+        Get pages with formatting errors
+        """
         result = []
         cnt = 0
         cnt_err = 0
@@ -405,18 +465,11 @@ class Confluence(object):
                     pages[page['id']] = page['url']
             logging.info("%s pages loaded from confluence.", len(pages.keys()))
 
-
         for page in sorted(pages.keys()):
             cnt += 1
-            # space['key']
+
             renderedPage = self.renderContent(None, page, '', {'style':'clean'})
-            #dom = parseString(renderedPage)
-            #for e in dom.getElementsByTagName('div'):
-            #    if e.hasAttribute("class"):
-            #        if "error" in e.getAttributeNode('class').nodeValue:
-            #           print(e)
-            #        else:
-            #           print(e)
+
             if not renderedPage:
                 if "Render failed" in stats:
                     stats['Render failed'] += 1
