@@ -115,9 +115,17 @@ class Confluence(object):
         Returns a Confluence object by loading the connection details from the `config.ini` file.
 
         :param profile: The name of the section from config.ini file that stores server config url/username/password
+        :type  profile: ``str``
+
         :param url: URL of the Confluence server
+        :type  url: ``str``
+
         :param username: username to use for authentication
+        :type  username: ``str``
+
         :param password: password to use for authentication
+        :type  password: ``str``
+
         :return: Confluence -- an instance to a Confluence object.
         :raises: EnvironmentError
 
