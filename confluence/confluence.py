@@ -186,10 +186,9 @@ class Confluence(object):
         options['username'] = username
         options['password'] = password
 
-        socket.setdefaulttimeout(120) # without this there is no timeout, and this may block the requests
+        socket.setdefaulttimeout(120)  # without this there is no timeout, and this may block the requests
         # 60 - getPages() timeout one with this !
-        self._server = xmlrpclib.ServerProxy(options['server'] +  '/rpc/xmlrpc', allow_none=True) # using Server or ServerProxy ?
-        #print self._server.system.listMethods()
+        self._server = xmlrpclib.ServerProxy(options['server'] +  '/rpc/xmlrpc', allow_none=True)  # using Server or ServerProxy ?
 
         # TODO: get rid of this split and just set self.server, self.token
         self._token = self._server.confluence1.login(username, password)
