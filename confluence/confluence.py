@@ -247,7 +247,7 @@ class Confluence(object):
                 "jpeg": "image/jpeg",
                 "pdf": "application/pdf",
             }
-            extension = os.path.split(filename)[1]
+            extension = os.path.splitext(filename)[1:]
             ty = content_types.get(extension, "application/binary")
             attachment = {"fileName": filename, "contentType": ty, "comment": files[filename]}
             f = open(filename, "rb")
