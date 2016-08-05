@@ -341,6 +341,30 @@ class Confluence(object):
             page = self._server.confluence1.getPage(self._token, space, page)
         return page['id']
 
+    def movePage(self, sourcePageIds, targetPageId, space, position='append'):
+        """
+        Moves sourcePage to be a child of targetPage by default.  Modify 'position' to either 'above' or 'below' to make sourcePage a sibling of targetPage, and place it either directly above or directly below targetPage in the hierarchy, respectively.
+
+        :param sourcePageId: List of pages to be moved to targetPageId
+        :param targetPageId: Name or PageID of new parent or target sibling
+        :param position: Defaults to move page to be child of targetPageId \
+                         Setting 'above' or 'below' instead sets sourcePageId \
+                         to be a sibling of targetPageId of targetPageId instead
+        """
+
+        if not targetPageId.isdigit(): 
+            targetPageId = self.getPageId(targetPageId, space)
+        for sourcePageId in sourcePageIds:    
+            if not sourcePageId.isdigit():
+                sourcePageId = self.getPageId(sourcePageId, space)
+
+            if self._token2:
+                self._server.confluence2.movePage(self._token2, 
+                                 str(sourcePageId), str(targetPageId), position)
+            else:
+                self._server.confluence1.movePage(self._token2, 
+                                 str(sourcePageId), str(targetPageId), position)
+
     def storePageContent(self, page, space, content, convert_wiki=True, parent_page=None):
         """
         Modifies the content of a Confluence page.
