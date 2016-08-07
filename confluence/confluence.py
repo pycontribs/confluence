@@ -2,6 +2,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+import copy
+import json
+import logging
+import os
+import re
+import socket
+import ssl
+import sys
+
 try:
     import xmlrpclib
 except ImportError:
@@ -12,17 +21,6 @@ try:
 except ImportError:
     import configparser as ConfigParser
 
-import json
-import copy
-import os
-import re
-import sys
-import ssl
-
-
-import logging
-import socket
-
 
 # TODO: replace all of these with object methods. Leaving for backwards compatibility for now
 def attach_file(server, token, space, title, files):
@@ -31,8 +29,8 @@ def attach_file(server, token, space, title, files):
     for filename in files.keys():
         try:
             server.confluence1.removeAttachment(token, existing_page["id"], filename)
-        except Exception:
-            logging.exception("Skipping exception in removeAttachment")
+        except Exception as e:
+            logging.exception("Skipping %s exception in removeAttachment" % e)
         content_types = {
             "gif": "image/gif",
             "png": "image/png",
@@ -67,12 +65,12 @@ def remove_all_attachments(server, token, space, title):
         filename = f['fileName']
         print("Removing %d of %d (%s)..." % (i, numfiles, filename))
         server.confluence1.removeAttachment(token, existing_page["id"], filename)
-        i = i + 1
+        i += 1
 
 
 def write_page(server, token, space, title, content, parent=None):
     parent_id = None
-    if not parent is None:
+    if parent is not None:
         try:
             # Find out the ID of the parent page
             parent_id = server.confluence1.getPage(token, space, parent)['id']
@@ -84,9 +82,7 @@ def write_page(server, token, space, title, content, parent=None):
         existing_page = server.confluence1.getPage(token, space, title)
     except:
         # In case it doesn't exist
-        existing_page = {}
-        existing_page["space"] = space
-        existing_page["title"] = title
+        existing_page = {"space": space, "title": title}
 
     if parent_id is not None:
         existing_page["parentId"] = parent_id
@@ -152,7 +148,7 @@ class Confluence(object):
             Find the file named path in the sys.path.
             Returns the full path name if found, None if not found
             """
-            paths = ['.', os.path.expanduser('~')]
+            paths = [os.getcwd(), '.', os.path.expanduser('~')]
             paths.extend(sys.path)
             for dirname in paths:
                 possible = os.path.abspath(os.path.join(dirname, path))
@@ -161,7 +157,8 @@ class Confluence(object):
             return None
         config = ConfigParser.SafeConfigParser(defaults={'user': None, 'pass': None, 'appid': appid})
 
-        config_file = findfile('config.ini') if username is not None else False
+        config_file = findfile('config.ini')
+        print(config_file)
 
         if not profile:
             if config_file:
@@ -188,7 +185,9 @@ class Confluence(object):
 
         socket.setdefaulttimeout(120)  # without this there is no timeout, and this may block the requests
         # 60 - getPages() timeout one with this !
-        self._server = xmlrpclib.ServerProxy(options['server'] +  '/rpc/xmlrpc', allow_none=True)  # using Server or ServerProxy ?
+        self._server = xmlrpclib.ServerProxy(
+            options['server'] +
+            '/rpc/xmlrpc', allow_none=True)  # using Server or ServerProxy ?
 
         # TODO: get rid of this split and just set self.server, self.token
         self._token = self._server.confluence1.login(username, password)
@@ -343,27 +342,29 @@ class Confluence(object):
 
     def movePage(self, sourcePageIds, targetPageId, space, position='append'):
         """
-        Moves sourcePage to be a child of targetPage by default.  Modify 'position' to either 'above' or 'below' to make sourcePage a sibling of targetPage, and place it either directly above or directly below targetPage in the hierarchy, respectively.
+        Moves sourcePage to be a child of targetPage by default.  Modify 'position' to either 'above' or 'below'
+        to make sourcePage a sibling of targetPage, and place it either directly above or directly below targetPage
+        in the hierarchy, respectively.
 
-        :param sourcePageId: List of pages to be moved to targetPageId
+        :param sourcePageIds: List of pages to be moved to targetPageId
         :param targetPageId: Name or PageID of new parent or target sibling
         :param position: Defaults to move page to be child of targetPageId \
                          Setting 'above' or 'below' instead sets sourcePageId \
                          to be a sibling of targetPageId of targetPageId instead
         """
 
-        if not targetPageId.isdigit(): 
+        if not targetPageId.isdigit():
             targetPageId = self.getPageId(targetPageId, space)
-        for sourcePageId in sourcePageIds:    
+        for sourcePageId in sourcePageIds:
             if not sourcePageId.isdigit():
                 sourcePageId = self.getPageId(sourcePageId, space)
 
             if self._token2:
-                self._server.confluence2.movePage(self._token2, 
-                                 str(sourcePageId), str(targetPageId), position)
+                self._server.confluence2.movePage(self._token2,
+                                                  str(sourcePageId), str(targetPageId), position)
             else:
-                self._server.confluence1.movePage(self._token2, 
-                                 str(sourcePageId), str(targetPageId), position)
+                self._server.confluence1.movePage(self._token2,
+                                                  str(sourcePageId), str(targetPageId), position)
 
     def storePageContent(self, page, space, content, convert_wiki=True, parent_page=None):
         """
@@ -422,6 +423,7 @@ class Confluence(object):
 
         :return: string: HTML content
         """
+
         try:
             if not page.isdigit():
                 page = self.getPageId(page=page, space=space)
@@ -499,7 +501,7 @@ class Confluence(object):
         for page in sorted(pages.keys()):
             cnt += 1
 
-            renderedPage = self.renderContent(None, page, '', {'style':'clean'})
+            renderedPage = self.renderContent(None, page, '', {'style': 'clean'})
 
             if not renderedPage:
                 if "Render failed" in stats:
@@ -513,7 +515,7 @@ class Confluence(object):
                 data[page] = pages[page]
                 continue
             if renderedPage.find('<div class="error">') > 0:
-                t = re.findall('<div class="error">(.*?)</div>', renderedPage, re.IGNORECASE|re.MULTILINE)
+                t = re.findall('<div class="error">(.*?)</div>', renderedPage, re.IGNORECASE | re.MULTILINE)
                 for x in t:
                     print("\n    %s" % t)
                     if x not in stats:
@@ -528,7 +530,7 @@ class Confluence(object):
             elif stdout:
                 print("\r [%s/%s]" % (cnt_err, cnt), end='')
 
-        json.dump(data, open('pages.json', 'w+'),  indent=1)
+        json.dump(data, open('pages.json', 'w+'), indent=1)
 
         if stdout:
             print("-- stats --")

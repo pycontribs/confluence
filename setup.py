@@ -1,28 +1,18 @@
 #!/usr/bin/env python
 # Setuptools is required for the use_2to3 option below. You should install it
 # from the Distribute home page, http://packages.python.org/distribute/
-import inspect
-import logging
 import os
 import sys
 
-from setuptools import setup, Command
+from setuptools import setup
 from setuptools.command.test import test as TestCommand
+from pip.req import parse_requirements
 
-# from distutils.core import setup, Command
+package_name = 'confluence'
+module_name = package_name.replace('-', '_')
 
-from confluence.version import __version__
+base_path = os.path.dirname(__file__)
 
-# Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
-# in multiprocessing/util.py _exit_function when running `python
-# setup.py test` (see
-# http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
-try:
-    import multiprocessing
-except ImportError:
-    pass
-
-test_requirements = ['pep8>=0.6', 'py', 'pytest', 'six', 'sphinx','BeautifulSoup']  # 'nosexcover']
 test_suite = "py.test"
 if sys.hexversion >= 0x02060000:
     # requirements.extend(['nose-machineout'])
@@ -47,6 +37,34 @@ options = {}
 #        errno = subprocess.call([sys.executable, 'tox'])
 #        raise SystemExit(errno)
 
+
+def get_metadata(*path):
+    fn = os.path.join(base_path, *path)
+    scope = {'__file__': fn}
+
+    # We do an exec here to prevent importing any requirements of this package.
+    # Which are imported from anything imported in the __init__ of the package
+    # This still supports dynamic versioning
+    with open(fn) as fo:
+        code = compile(fo.read(), fn, 'exec')
+        exec(code, scope)
+
+    if 'setup_metadata' in scope:
+        return scope['setup_metadata']
+
+    raise RuntimeError('Unable to find metadata.')
+
+
+def read(fname):
+    return open(os.path.join(base_path, fname)).read()
+
+
+def get_requirements(*path):
+    req_path = os.path.join(*path)
+    reqs = parse_requirements(req_path, session=False)
+    return [str(ir.req) for ir in reqs]
+
+
 """
 class PyTest(TestCommand):
     def finalize_options(self):
@@ -61,6 +79,7 @@ class PyTest(TestCommand):
 
 
 class Tox(TestCommand):
+
     def finalize_options(self):
         TestCommand.finalize_options(self)
         self.test_args = []
@@ -72,42 +91,37 @@ class Tox(TestCommand):
         errno = tox.cmdline(self.test_args)
         sys.exit(errno)
 
-setup(
-    name='confluence',
-    #py_modules=[],
-    packages=['confluence'],
-    version=__version__,
-    zip_safe=False,
-    description='A Python API to Confluence',
-    author='Sorin Sbarnea',
-    author_email='sorin.sbarnea@gmail.com',
-    maintainer='Sorin Sbarnea',
-    maintainer_email='sorin.sbarnea@gmail.com',
-    license='Python',
-    platforms=['any'],
-    url='https://bitbucket.org/phoebian/confluence',
-    download_url='https://bitbucket.org/phoebian/confluence/downloads',
-    bugtrack_url='https://bitbucket.org/phoebian/confluence/issues',
-    keywords=['confluence', 'atlassian'],
-    classifiers=[
-                'Programming Language :: Python',
-                'Programming Language :: Python :: 2.5',
-                'Programming Language :: Python :: 2.6',
-                'Programming Language :: Python :: 2.7',
-                'Programming Language :: Python :: 3',
-                'Development Status :: 4 - Beta',
-                'Environment :: Other Environment',
-                'Intended Audience :: Developers',
-                'License :: OSI Approved :: BSD License',
-                'Operating System :: OS Independent',
-                'Topic :: Software Development :: Libraries :: Python Modules',
-                'Topic :: Internet',
+
+if __name__ == '__main__':
+
+    setup(
+        name=package_name,
+        packages=[package_name],
+        zip_safe=False,
+        tests_require=get_requirements(base_path, 'requirements-dev.txt'),
+        install_requires=get_requirements(base_path, 'requirements.txt'),
+        maintainer='Sorin Sbarnea',
+        platforms=['any'],
+        download_url='https://bitbucket.org/phoebian/confluence/downloads',
+        bugtrack_url='https://bitbucket.org/phoebian/confluence/issues',
+        keywords=['confluence', 'atlassian'],
+        classifiers=[
+            'Programming Language :: Python',
+            'Programming Language :: Python :: 2.5',
+            'Programming Language :: Python :: 2.6',
+            'Programming Language :: Python :: 2.7',
+            'Programming Language :: Python :: 3',
+            'Development Status :: 4 - Beta',
+            'Environment :: Other Environment',
+            'Intended Audience :: Developers',
+            'License :: OSI Approved :: BSD License',
+            'Operating System :: OS Independent',
+            'Topic :: Software Development :: Libraries :: Python Modules',
+            'Topic :: Internet',
         ],
-    long_description=open('README.md').read(),
-    setup_requires=['tox','BeautifulSoup'],  # ,'nosexcover'],
-    tests_require=test_requirements,  # autopep8 removed because it does not install on python2.5
-    test_suite=test_suite,
-    cmdclass={'test': Tox},
-#	use_2to3 = use_2to3,
-    **options
-)
+        long_description=open('README.md').read(),
+        test_suite=test_suite,
+        cmdclass={'test': Tox},
+        **get_metadata(base_path, module_name, 'package_meta.py'),
+        **options
+    )
