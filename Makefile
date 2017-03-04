@@ -1,11 +1,10 @@
 .PHONY: build test
 
-all: build
+all: test
 
 test:
-	@python3 -m pip install -q -r requirements-dev.txt
-	@python3 -m pytest
+	@python -m pip install -q -r requirements.txt -r requirements-dev.txt
+	@python -m pytest
 
 build: test
 	@python setup.py build
-	@python -m pytest

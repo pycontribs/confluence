@@ -1,1 +1,4 @@
-include README.md
+include LICENSE README.rst
+include requirements.txt
+include requirements-dev.txt
+prune tests
