@@ -106,7 +106,7 @@ class Confluence(object):
         "verify": True
     }
 
-    def __init__(self, profile=None, url="http://localhost:8090/", username=None, password=None, appid=None):
+    def __init__(self, profile=None, url="http://localhost:8090/", username=None, password=None, appid=None, debug=False):
         """
         Returns a Confluence object by loading the connection details from the `config.ini` file.
 
@@ -155,10 +155,11 @@ class Confluence(object):
                 if os.path.isfile(possible):
                     return possible
             return None
-        config = ConfigParser.SafeConfigParser(defaults={'user': None, 'pass': None, 'appid': appid})
+
+        config = ConfigParser.SafeConfigParser(defaults={'user': username, 'pass': password, 'appid': appid})
 
         config_file = findfile('config.ini')
-        print(config_file)
+        if debug: print(config_file)
 
         if not profile:
             if config_file:
