@@ -24,6 +24,7 @@ How to use it
 -------------
 
 You should read the documentation from [pythonhosted.org/confluence/](http://pythonhosted.org/confluence/) or just look inside the source code as you may find some new features that are not yet documented.
+
 .. code-block:: python
 
   from confluence import Confluence
