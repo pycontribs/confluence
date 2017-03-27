@@ -33,6 +33,17 @@ You should read the documentation from `pythonhosted.org/confluence/
   conf.getPage("page","space")
   conf.storePageContent("page","space","hello world!")
 
+Also create a `config.ini` file like this and put it in current directory, user home directory or PYTHONPATH.
+
+.. code-block:: ini
+
+  [confluence]
+  url=https://confluence.atlassian.com
+  # only the `url` is mandatory
+  user=...
+  pass=...
+
+
 How to report bugs
 ------------------
 
