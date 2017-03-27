@@ -14,7 +14,6 @@ Confluence Python API
 .. image:: https://img.shields.io/pypi/wheel/confluence.svg
         :target: https://pypi.python.org/pypi/confluence/
 
-------------
 If you want to interfere with Confluence from Python, this is what you are looking for.
 
 While this library is quite new it has the basic functionality for retrieving and storing pages in Confluence 3.x-5.x, hiding most API differences between these versions.
