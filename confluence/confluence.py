@@ -215,6 +215,61 @@ class Confluence(object):
             page = self._server.confluence1.getPage(self._token, space, page)
         return page
 
+    def getAttachments(self, page, space):
+        """
+        Returns a attachments as a dictionary.
+
+        :param page: The page name
+        :type  page: ``str``
+
+        :param space: The space name
+        :type  space: ``str``
+
+        :return: dictionary. result['content'] contains the body of the page.
+        """
+        if self._token2:
+            server = self._server.confluence2
+            token = self._token2
+        else:
+            server = self._server.confluence1
+            token = self._token1
+        existing_page = server.getPage(token, space, page)
+        try:
+            attachments = server.getAttachments(token, existing_page["id"])
+        except xmlrpclib.Fault:
+            logging.info("No existing attachment")
+            attachments = None
+        return attachments
+
+    def getAttachedFile(self, page, space, fileName):
+        """
+        Returns a attachment data as byte[].
+
+        :param page: The page name
+        :type  page: ``str``
+
+        :param space: The space name
+        :type  space: ``str``
+
+        :param fileName: The attached file name
+        :type  fileName: ``str``
+        """
+        if self._token2:
+            server = self._server.confluence2
+            token = self._token2
+        else:
+            server = self._server.confluence1
+            token = self._token1
+        existing_page = server.getPage(token, space, page)
+        try:
+            DATA = server.getAttachmentData(token, existing_page["id"],fileName,"0")
+        except xmlrpclib.Fault:
+            logging.info("No existing attachment")
+            DATA = None
+        return DATA
+
+
+
     def attachFile(self, page, space, files):
         """
         Attach (upload) a file to a page
