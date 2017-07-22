@@ -413,7 +413,7 @@ class Confluence(object):
         else:
             return self._server.confluence1.storePage(self._token, data)
 
-    def renderContent(self, space, page, a='', b=None):
+    def renderContent(self, space, page, a='', b={'style': 'clean'}):
         """
         Obtains the HTML content of a wiki page.
 
