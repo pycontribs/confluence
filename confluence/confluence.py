@@ -159,7 +159,8 @@ class Confluence(object):
         config = ConfigParser.SafeConfigParser(defaults={'user': username, 'pass': password, 'appid': appid})
 
         config_file = findfile('config.ini')
-        if debug: print(config_file)
+        if debug:
+            print(config_file)
 
         if not profile:
             if config_file:
@@ -412,7 +413,7 @@ class Confluence(object):
         else:
             return self._server.confluence1.storePage(self._token, data)
 
-    def renderContent(self, space, page, a='', b=None):
+    def renderContent(self, space, page, a='', b={'style': 'clean'}):
         """
         Obtains the HTML content of a wiki page.
 

@@ -24,6 +24,7 @@ class ConfluenceTests(unittest.TestCase):
     #    page = self.conf.getPage(page='test',space='ds')
     #    print page
 
+    @pytest.mark.xfail(reason="Response contains mismatched tag; see issue 16.")
     def test_renderContent(self):
         result = self.conf.renderContent(page='Welcome to Confluence', space='ds')
         # tree = ElementTree.fromstring(result)
