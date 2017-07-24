@@ -263,13 +263,11 @@ class Confluence(object):
             token = self._token1
         existing_page = server.getPage(token, space, page)
         try:
-            DATA = server.getAttachmentData(token, existing_page["id"],fileName,"0")
+            DATA = server.getAttachmentData(token, existing_page["id"], fileName, "0")
         except xmlrpclib.Fault:
             logging.info("No existing attachment")
             DATA = None
         return DATA
-
-
 
     def attachFile(self, page, space, files):
         """
