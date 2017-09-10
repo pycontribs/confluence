@@ -43,9 +43,22 @@ Also create a `config.ini` file like this and put it in current directory, user 
   user=...
   pass=...
 
+Development
+-----------
 
-How to report bugs
-------------------
+Development takes place on GitHub_, where the git-flow_ branch structure is used:
 
-Cheers,
-Sorin Sbarnea
+``master`` - contains the latest released code.
+``develop`` - (default branch) is used for development of the next release.
+``feature/XXX`` - feature branches are used for development of new features before they are merged to ``develop``.
+
+.. _GitHub: https://github.com/pycontribs/confluence
+.. _git-flow: http://nvie.com/posts/a-successful-git-branching-model/
+
+How to report bugs and request improvements
+-------------------------------------------
+
+We use the GitHub issue_ tracker. Before you submit your issue, take a look at the list of current issues to see if someone already found something similar.
+
+.. _issue: https://github.com/pycontribs/confluence/issues
+

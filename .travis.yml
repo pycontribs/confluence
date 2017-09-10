@@ -10,7 +10,8 @@ python:
 - '3.5'
 - '3.6'
 install:
-- pip -q --log dist/pip.log install --upgrade pip setuptools tox-travis py wheel
+- pip install --upgrade setuptools # TEMPORARY WORKAROUND - setuptools bug
+- pip -q --log dist/pip.log install --upgrade pip tox-travis py wheel
 - python setup.py sdist bdist_wheel install
 - pip install ./dist/*.whl
 - pip --version
