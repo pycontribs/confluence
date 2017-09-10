@@ -48,9 +48,9 @@ Development
 
 Development takes place on GitHub_, where the git-flow_ branch structure is used:
 
-``master`` - contains the latest released code.
-``develop`` - (default branch) is used for development of the next release.
-``feature/XXX`` - feature branches are used for development of new features before they are merged to ``develop``.
+* ``master`` - contains the latest released code.
+* ``develop`` - (default branch) is used for development of the next release.
+* ``feature/XXX`` - feature branches are used for development of new features before they are merged to ``develop``.
 
 .. _GitHub: https://github.com/pycontribs/confluence
 .. _git-flow: http://nvie.com/posts/a-successful-git-branching-model/
