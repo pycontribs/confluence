@@ -55,8 +55,10 @@ Development takes place on GitHub_, where the git-flow_ branch structure is used
 .. _GitHub: https://github.com/pycontribs/confluence
 .. _git-flow: http://nvie.com/posts/a-successful-git-branching-model/
 
-How to report bugs
-------------------
+How to report bugs and request improvements
+-------------------------------------------
 
-Cheers,
-Sorin Sbarnea
+We use the GitHub issue_ tracker. Before you submit your issue, take a look at the list of current issues to see if someone already found something similar.
+
+.. _issue: https://github.com/pycontribs/confluence/issues
+
