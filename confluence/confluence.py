@@ -269,6 +269,28 @@ class Confluence(object):
             DATA = None
         return DATA
 
+    def getAttachedFileById(self, id, fileName, version):
+        """
+        Returns a attachment data as byte[].
+
+        :param id: The page id
+
+        :param fileName: The attached file name
+        :type  fileName: ``str``
+        """
+        if self._token2:
+            server = self._server.confluence2
+            token = self._token2
+        else:
+            server = self._server.confluence1
+            token = self._token1
+        try:
+            DATA = server.getAttachmentData(token, id, fileName, version)
+        except xmlrpclib.Fault:
+            logging.info("No existing attachment")
+            DATA = None
+        return DATA
+
     def attachFile(self, page, space, files):
         """
         Attach (upload) a file to a page
