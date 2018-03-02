@@ -106,7 +106,7 @@ class Confluence(object):
         "verify": True
     }
 
-    def __init__(self, profile=None, url="http://localhost:8090/", username=None, password=None, appid=None, debug=False):
+    def __init__(self, profile=None, url="http://localhost:8090/", username=None, password=None, appid=None, debug=False, context=None):
         """
         Returns a Confluence object by loading the connection details from the `config.ini` file.
 
@@ -184,12 +184,13 @@ class Confluence(object):
         options['server'] = url
         options['username'] = username
         options['password'] = password
+        options['context'] = context
 
         socket.setdefaulttimeout(120)  # without this there is no timeout, and this may block the requests
         # 60 - getPages() timeout one with this !
         self._server = xmlrpclib.ServerProxy(
             options['server'] +
-            '/rpc/xmlrpc', allow_none=True)  # using Server or ServerProxy ?
+            '/rpc/xmlrpc', allow_none=True, context=options['context'])  # using Server or ServerProxy ?
 
         # TODO: get rid of this split and just set self.server, self.token
         self._token = self._server.confluence1.login(username, password)
