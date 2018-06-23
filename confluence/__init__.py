@@ -3,7 +3,7 @@ from pbr.version import VersionInfo
 from .confluence import Confluence
 import sys
 
-_v = VersionInfo('jira').semantic_version()
+_v = VersionInfo('confluence').semantic_version()
 __version__ = _v.release_string()
 version_info = _v.version_tuple()
 
