@@ -75,12 +75,12 @@ def write_page(server, token, space, title, content, parent=None):
             # Find out the ID of the parent page
             parent_id = server.confluence1.getPage(token, space, parent)['id']
             print("parent page id is %s" % parent_id)
-        except:
+        except Exception:
             print("couldn't find parent page; ignoring error...")
 
     try:
         existing_page = server.confluence1.getPage(token, space, title)
-    except:
+    except Exception:
         # In case it doesn't exist
         existing_page = {"space": space, "title": title}
 
