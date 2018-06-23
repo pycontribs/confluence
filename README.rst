@@ -13,6 +13,9 @@ Confluence Python API
 
 .. image:: https://img.shields.io/pypi/wheel/confluence.svg
         :target: https://pypi.python.org/pypi/confluence/
+        
+.. image:: https://travis-ci.org/pycontribs/confluence.svg?branch=develop
+    :target: https://travis-ci.org/pycontribs/confluence
 
 If you want to interfere with Confluence from Python, this is what you are looking for.
 
