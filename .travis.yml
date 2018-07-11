@@ -1,0 +1,73 @@
+language: python
+sudo: false
+matrix:
+  fast_finish: false
+os:
+- linux
+python:
+- '2.7'
+- '3.4'
+- '3.5'
+- '3.6'
+install:
+- pip install --upgrade setuptools # TEMPORARY WORKAROUND - setuptools bug
+- pip -q --log dist/pip.log install --upgrade pip tox-travis py wheel
+- python setup.py sdist bdist_wheel install
+- pip install ./dist/*.whl
+- pip --version
+script:
+- export PACKAGE_NAME=$(python setup.py --name)
+- export PACKAGE_VERSION=$(python setup.py --version)
+- python setup.py --version
+- tox --installpkg ./dist/*.whl --travis-after
+# validates that the build source distribution is installable using the old easy_install
+- pip uninstall -y $PACKAGE_NAME && easy_install ./dist/$PACKAGE_NAME-*.tar.gz
+after_success:
+- coveralls
+- bash <(curl -s https://codecov.io/bash)
+- requires.io update-site -t ac3bbcca32ae03237a6aae2b02eb9411045489bb -r
+notifications:
+  email:
+  - pycontribs@googlegroups.com
+  - sorin.sbarnea@gmail.com
+deploy:
+- provider: releases
+  api_key:
+    secure: G19YtkGAX0aJ1oyd/7eRj1KYdsmAkjkfU2UISvsjh/68ec1+9qtPpN7BbkFYZYMjSx0BtS0SEEA7Vdl4F9DI9Zzqahbj7WzDLFe9/4aZKM/ztfKWR6CNAYaMazAKS5W7r9pPkBBDIIJ9zCqvV7FRzjewEpfTwFzwUdY+IpxEsAM=
+  file:
+  - dist/$PACKAGE_NAME-$PACKAGE_VERSION.tar.gz
+  - dist/$PACKAGE_NAME-$PACKAGE_VERSION-py2.py3-none-any.whl
+  - ChangeLog
+  skip_cleanup: true
+  on:
+    repo: pycontribs/jira
+    tags: true
+    python: 2.7
+    condition: $TOXENV != docs
+- provider: pypi
+  user: sorin
+  password:
+    secure: E0cjANF7SLBdYrsnWLK8X/xWznqkF0JrP/DVfDazPzUYH6ynFeneyofzNJQPLTLsqe1eKXhuUJ/Sbl+RHFB0ySo/j/7NfYd/9pm8hpUkGCvR09IwtvMLgWKp3k10NWab03o2GOkSJSrLvZofyZBGR40wwu2O9uXPCb2rvucCGbw=
+  distributions: sdist bdist_wheel
+  skip_cleanup: true
+  on:
+    tags: true
+    python: 2.7
+    condition: $TOXENV != docs
+    branch: master
+- provider: pypi
+  server: https://test.pypi.org/legacy/
+  user: sorins
+  password:
+    secure: E0cjANF7SLBdYrsnWLK8X/xWznqkF0JrP/DVfDazPzUYH6ynFeneyofzNJQPLTLsqe1eKXhuUJ/Sbl+RHFB0ySo/j/7NfYd/9pm8hpUkGCvR09IwtvMLgWKp3k10NWab03o2GOkSJSrLvZofyZBGR40wwu2O9uXPCb2rvucCGbw=
+  distributions: sdist bdist_wheel
+  skip_cleanup: true
+  on:
+    tags: false
+    python: 2.7
+    condition: $TOXENV != docs
+    branch: develop
+env:
+  global:
+  - secure: fuXwQL+KHQ96XkAFl2uQc8eK8dAjrgkup46tck/UGjVpdv1PT/yHmBKrvpFjDa50ueGbtBwTdKAwhyAmYuiZCk2IYHzdvBylCZBBji2FSpaTM59CVwgkVT6tx3HHO83X0mEX6ih9TJvZD5XhX+YUjopnseRXRq3ey3JZJXWN4RM=
+  - secure: "pGQGM5YmHvOgaKihOyzb3k6bdqLQnZQ2OXO9QrfXlXwtop3zvZQi80Q+01l230x2psDWlwvqWTknAjAt1w463fYXPwpoSvKVCsLSSbjrf2l56nrDqnoir+n0CBy288+eIdaGEfzcxDiuULeKjlg08zrqjcjLjW0bDbBrlTXsb5U="

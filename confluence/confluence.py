@@ -2,6 +2,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 
+import copy
+import json
+import logging
+import os
+import re
+import socket
+import ssl
+import sys
+
 try:
     import xmlrpclib
 except ImportError:
@@ -12,17 +21,6 @@ try:
 except ImportError:
     import configparser as ConfigParser
 
-import json
-import copy
-import os
-import re
-import sys
-import ssl
-
-
-import logging
-import socket
-
 
 # TODO: replace all of these with object methods. Leaving for backwards compatibility for now
 def attach_file(server, token, space, title, files):
@@ -31,8 +29,8 @@ def attach_file(server, token, space, title, files):
     for filename in files.keys():
         try:
             server.confluence1.removeAttachment(token, existing_page["id"], filename)
-        except Exception:
-            logging.exception("Skipping exception in removeAttachment")
+        except Exception as e:
+            logging.exception("Skipping %s exception in removeAttachment" % e)
         content_types = {
             "gif": "image/gif",
             "png": "image/png",
@@ -67,26 +65,24 @@ def remove_all_attachments(server, token, space, title):
         filename = f['fileName']
         print("Removing %d of %d (%s)..." % (i, numfiles, filename))
         server.confluence1.removeAttachment(token, existing_page["id"], filename)
-        i = i + 1
+        i += 1
 
 
 def write_page(server, token, space, title, content, parent=None):
     parent_id = None
-    if not parent is None:
+    if parent is not None:
         try:
             # Find out the ID of the parent page
             parent_id = server.confluence1.getPage(token, space, parent)['id']
             print("parent page id is %s" % parent_id)
-        except:
+        except Exception:
             print("couldn't find parent page; ignoring error...")
 
     try:
         existing_page = server.confluence1.getPage(token, space, title)
-    except:
+    except Exception:
         # In case it doesn't exist
-        existing_page = {}
-        existing_page["space"] = space
-        existing_page["title"] = title
+        existing_page = {"space": space, "title": title}
 
     if parent_id is not None:
         existing_page["parentId"] = parent_id
@@ -110,7 +106,7 @@ class Confluence(object):
         "verify": True
     }
 
-    def __init__(self, profile=None, url="http://localhost:8090/", username=None, password=None, appid=None):
+    def __init__(self, profile=None, url="http://localhost:8090/", username=None, password=None, appid=None, debug=False, context=None):
         """
         Returns a Confluence object by loading the connection details from the `config.ini` file.
 
@@ -152,16 +148,19 @@ class Confluence(object):
             Find the file named path in the sys.path.
             Returns the full path name if found, None if not found
             """
-            paths = ['.', os.path.expanduser('~')]
+            paths = [os.getcwd(), '.', os.path.expanduser('~')]
             paths.extend(sys.path)
             for dirname in paths:
                 possible = os.path.abspath(os.path.join(dirname, path))
                 if os.path.isfile(possible):
                     return possible
             return None
-        config = ConfigParser.SafeConfigParser(defaults={'user': None, 'pass': None, 'appid': appid})
 
-        config_file = findfile('config.ini') if username is not None else False
+        config = ConfigParser.SafeConfigParser(defaults={'user': username, 'pass': password, 'appid': appid})
+
+        config_file = findfile('config.ini')
+        if debug:
+            print(config_file)
 
         if not profile:
             if config_file:
@@ -185,10 +184,13 @@ class Confluence(object):
         options['server'] = url
         options['username'] = username
         options['password'] = password
+        options['context'] = context
 
         socket.setdefaulttimeout(120)  # without this there is no timeout, and this may block the requests
         # 60 - getPages() timeout one with this !
-        self._server = xmlrpclib.ServerProxy(options['server'] +  '/rpc/xmlrpc', allow_none=True)  # using Server or ServerProxy ?
+        self._server = xmlrpclib.ServerProxy(
+            options['server'] +
+            '/rpc/xmlrpc', allow_none=True, context=options['context'])  # using Server or ServerProxy ?
 
         # TODO: get rid of this split and just set self.server, self.token
         self._token = self._server.confluence1.login(username, password)
@@ -214,6 +216,81 @@ class Confluence(object):
         else:
             page = self._server.confluence1.getPage(self._token, space, page)
         return page
+
+    def getAttachments(self, page, space):
+        """
+        Returns a attachments as a dictionary.
+
+        :param page: The page name
+        :type  page: ``str``
+
+        :param space: The space name
+        :type  space: ``str``
+
+        :return: dictionary. result['content'] contains the body of the page.
+        """
+        if self._token2:
+            server = self._server.confluence2
+            token = self._token2
+        else:
+            server = self._server.confluence1
+            token = self._token1
+        existing_page = server.getPage(token, space, page)
+        try:
+            attachments = server.getAttachments(token, existing_page["id"])
+        except xmlrpclib.Fault:
+            logging.info("No existing attachment")
+            attachments = None
+        return attachments
+
+    def getAttachedFile(self, page, space, fileName):
+        """
+        Returns a attachment data as byte[].
+
+        :param page: The page name
+        :type  page: ``str``
+
+        :param space: The space name
+        :type  space: ``str``
+
+        :param fileName: The attached file name
+        :type  fileName: ``str``
+        """
+        if self._token2:
+            server = self._server.confluence2
+            token = self._token2
+        else:
+            server = self._server.confluence1
+            token = self._token1
+        existing_page = server.getPage(token, space, page)
+        try:
+            DATA = server.getAttachmentData(token, existing_page["id"], fileName, "0")
+        except xmlrpclib.Fault:
+            logging.info("No existing attachment")
+            DATA = None
+        return DATA
+
+    def getAttachedFileById(self, id, fileName, version):
+        """
+        Returns a attachment data as byte[].
+
+        :param id: The page id
+
+        :param fileName: The attached file name
+        :type  fileName: ``str``
+        """
+        if self._token2:
+            server = self._server.confluence2
+            token = self._token2
+        else:
+            server = self._server.confluence1
+            token = self._token1
+        try:
+            DATA = server.getAttachmentData(token, id, fileName, version)
+        except xmlrpclib.Fault:
+            logging.info("No existing attachment")
+            DATA = None
+        return DATA
 
     def attachFile(self, page, space, files):
         """
@@ -343,27 +420,29 @@ class Confluence(object):
 
     def movePage(self, sourcePageIds, targetPageId, space, position='append'):
         """
-        Moves sourcePage to be a child of targetPage by default.  Modify 'position' to either 'above' or 'below' to make sourcePage a sibling of targetPage, and place it either directly above or directly below targetPage in the hierarchy, respectively.
+        Moves sourcePage to be a child of targetPage by default.  Modify 'position' to either 'above' or 'below'
+        to make sourcePage a sibling of targetPage, and place it either directly above or directly below targetPage
+        in the hierarchy, respectively.
 
-        :param sourcePageId: List of pages to be moved to targetPageId
+        :param sourcePageIds: List of pages to be moved to targetPageId
         :param targetPageId: Name or PageID of new parent or target sibling
         :param position: Defaults to move page to be child of targetPageId \
                          Setting 'above' or 'below' instead sets sourcePageId \
                          to be a sibling of targetPageId of targetPageId instead
         """
 
-        if not targetPageId.isdigit(): 
+        if not targetPageId.isdigit():
             targetPageId = self.getPageId(targetPageId, space)
-        for sourcePageId in sourcePageIds:    
+        for sourcePageId in sourcePageIds:
             if not sourcePageId.isdigit():
                 sourcePageId = self.getPageId(sourcePageId, space)
 
             if self._token2:
-                self._server.confluence2.movePage(self._token2, 
-                                 str(sourcePageId), str(targetPageId), position)
+                self._server.confluence2.movePage(self._token2,
+                                                  str(sourcePageId), str(targetPageId), position)
             else:
-                self._server.confluence1.movePage(self._token2, 
-                                 str(sourcePageId), str(targetPageId), position)
+                self._server.confluence1.movePage(self._token2,
+                                                  str(sourcePageId), str(targetPageId), position)
 
     def storePageContent(self, page, space, content, convert_wiki=True, parent_page=None):
         """
@@ -410,7 +489,7 @@ class Confluence(object):
         else:
             return self._server.confluence1.storePage(self._token, data)
 
-    def renderContent(self, space, page, a='', b=None):
+    def renderContent(self, space, page, a='', b={'style': 'clean'}):
         """
         Obtains the HTML content of a wiki page.
 
@@ -422,6 +501,7 @@ class Confluence(object):
 
         :return: string: HTML content
         """
+
         try:
             if not page.isdigit():
                 page = self.getPageId(page=page, space=space)
@@ -499,7 +579,7 @@ class Confluence(object):
         for page in sorted(pages.keys()):
             cnt += 1
 
-            renderedPage = self.renderContent(None, page, '', {'style':'clean'})
+            renderedPage = self.renderContent(None, page, '', {'style': 'clean'})
 
             if not renderedPage:
                 if "Render failed" in stats:
@@ -513,7 +593,7 @@ class Confluence(object):
                 data[page] = pages[page]
                 continue
             if renderedPage.find('<div class="error">') > 0:
-                t = re.findall('<div class="error">(.*?)</div>', renderedPage, re.IGNORECASE|re.MULTILINE)
+                t = re.findall('<div class="error">(.*?)</div>', renderedPage, re.IGNORECASE | re.MULTILINE)
                 for x in t:
                     print("\n    %s" % t)
                     if x not in stats:
@@ -528,7 +608,7 @@ class Confluence(object):
             elif stdout:
                 print("\r [%s/%s]" % (cnt_err, cnt), end='')
 
-        json.dump(data, open('pages.json', 'w+'),  indent=1)
+        json.dump(data, open('pages.json', 'w+'), indent=1)
 
         if stdout:
             print("-- stats --")
