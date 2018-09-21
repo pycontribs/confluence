@@ -312,9 +312,9 @@ class Confluence(object):
             server = self._server.confluence1
             token = self._token1
         existing_page = server.getPage(token, space, page)
-        for filename in files.keys():
+        for filePath in files.keys():
             try:
-                server.removeAttachment(token, existing_page["id"], filename)
+                server.removeAttachment(token, existing_page["id"], filePath)
             except xmlrpclib.Fault:
                 logging.info("No existing attachment to replace")
             content_types = {
@@ -324,17 +324,21 @@ class Confluence(object):
                 "jpeg": "image/jpeg",
                 "pdf": "application/pdf",
             }
-            extension = os.path.splitext(filename)[1:]
+            extension = os.path.splitext(filePath)[1:]
             ty = content_types.get(extension, "application/binary")
-            attachment = {"fileName": filename, "contentType": ty, "comment": files[filename]}
-            f = open(filename, "rb")
+            f = open(filePath, "rb")
+
+            filename = str(filePath).split("/")[-1]
+
+            attachment = {"fileName": filename, "contentType": ty, "comment": files[filePath]}
+            
             try:
                 byts = f.read()
                 logging.info("calling addAttachment(%s, %s, %s, ...)", token, existing_page["id"], repr(attachment))
                 server.addAttachment(token, existing_page["id"], attachment, xmlrpclib.Binary(byts))
                 logging.info("done")
             except xmlrpclib.Error:
-                logging.exception("Unable to attach %s", filename)
+                logging.exception("Unable to attach %s", filePath)
             finally:
                 f.close()
 
