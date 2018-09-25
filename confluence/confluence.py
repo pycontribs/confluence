@@ -106,44 +106,33 @@ class Confluence(object):
         "verify": True
     }
 
-    def __init__(self, profile=None, url="http://localhost:8090/", username=None, password=None, appid=None, debug=False, context=None):
+    def __init__(self, path='config.ini', profile=None, url="http://localhost:8090/", username=None, password=None, appid=None, debug=False, context=None):
         """
         Returns a Confluence object by loading the connection details from the `config.ini` file.
-
         :param profile: The name of the section from config.ini file that stores server config url/username/password
         :type  profile: ``str``
-
         :param url: URL of the Confluence server
         :type  url: ``str``
-
         :param username: username to use for authentication
         :type  username: ``str``
-
         :param password: password to use for authentication
         :type  password: ``str``
-
         :return: Confluence -- an instance to a Confluence object.
         :raises: EnvironmentError
-
         Usage:
-
             >>> from confluence import Confluence
             >>>
             >>> conf = Confluence(profile='confluence')
             >>> conf.storePageContent("test","test","hello world!")
-
         Also create a `config.ini` like this and put it in current directory, user home directory or PYTHONPATH.
-
         .. code-block:: none
-
             [confluence]
             url=https://confluence.atlassian.com
             # only the `url` is mandatory
             user=...
             pass=...
-
         """
-        def findfile(path):
+        def findfile(file_path):
             """
             Find the file named path in the sys.path.
             Returns the full path name if found, None if not found
@@ -151,14 +140,14 @@ class Confluence(object):
             paths = [os.getcwd(), '.', os.path.expanduser('~')]
             paths.extend(sys.path)
             for dirname in paths:
-                possible = os.path.abspath(os.path.join(dirname, path))
+                possible = os.path.abspath(os.path.join(dirname, file_path))
                 if os.path.isfile(possible):
                     return possible
             return None
 
         config = ConfigParser.SafeConfigParser(defaults={'user': username, 'pass': password, 'appid': appid})
 
-        config_file = findfile('config.ini')
+        config_file = findfile(path)
         if debug:
             print(config_file)
 
@@ -202,13 +191,10 @@ class Confluence(object):
     def getPage(self, page, space):
         """
         Returns a page object as a dictionary.
-
         :param page: The page name
         :type  page: ``str``
-
         :param space: The space name
         :type  space: ``str``
-
         :return: dictionary. result['content'] contains the body of the page.
         """
         if self._token2:
@@ -220,13 +206,10 @@ class Confluence(object):
     def getAttachments(self, page, space):
         """
         Returns a attachments as a dictionary.
-
         :param page: The page name
         :type  page: ``str``
-
         :param space: The space name
         :type  space: ``str``
-
         :return: dictionary. result['content'] contains the body of the page.
         """
         if self._token2:
@@ -246,13 +229,10 @@ class Confluence(object):
     def getAttachedFile(self, page, space, fileName):
         """
         Returns a attachment data as byte[].
-
         :param page: The page name
         :type  page: ``str``
-
         :param space: The space name
         :type  space: ``str``
-
         :param fileName: The attached file name
         :type  fileName: ``str``
         """
@@ -273,9 +253,7 @@ class Confluence(object):
     def getAttachedFileById(self, id, fileName, version):
         """
         Returns a attachment data as byte[].
-
         :param id: The page id
-
         :param fileName: The attached file name
         :type  fileName: ``str``
         """
@@ -295,13 +273,10 @@ class Confluence(object):
     def attachFile(self, page, space, files):
         """
         Attach (upload) a file to a page
-
         :param page: The page name
         :type  page: ``str``
-
         :param space: The space name
         :type  space: ``str``
-
         :param files: The files to upload
         :type  files: ``dict`` where `key` is filename and `value` is the comment.
         """
@@ -344,7 +319,6 @@ class Confluence(object):
     def getBlogEntries(self, space):
         """
         Returns a page object as a Vector.
-
         :param space: The space name
         :type  space: ``str``
         """
@@ -357,7 +331,6 @@ class Confluence(object):
     def getBlogEntry(self, pageId):
         """
         Returns a blog page as a BlogEntry object.
-
         :param pageId:
         """
         if self._token2:
@@ -370,10 +343,8 @@ class Confluence(object):
         """
         Store or update blog content.
         (The BlogEntry given as an argument should have space, title and content fields at a minimum.)
-
         :param entry: Blog entry
         :type  entry: ``str``
-
         :rtype: ``bool``
         :return: `true` if succeeded
         """
@@ -386,13 +357,10 @@ class Confluence(object):
     def addLabelByName(self, labelName, objectId):
         """
         Adds label(s) to the object.
-
         :param labelName: Tag Name
         :type  labelName: ``str``
-
         :param objectId: Such as pageId
         :type  objectId: ``str``
-
         :rtype: ``bool``
         :return: True if succeeded
         """
@@ -405,13 +373,10 @@ class Confluence(object):
     def getPageId(self, page, space):
         """
         Retuns the numeric id of a confluence page.
-
         :param page: The page name
         :type  page: ``str``
-
         :param space: The space name
         :type  space: ``str``
-
         :rtype: ``int``
         :return: Page numeric id
         """
@@ -426,7 +391,6 @@ class Confluence(object):
         Moves sourcePage to be a child of targetPage by default.  Modify 'position' to either 'above' or 'below'
         to make sourcePage a sibling of targetPage, and place it either directly above or directly below targetPage
         in the hierarchy, respectively.
-
         :param sourcePageIds: List of pages to be moved to targetPageId
         :param targetPageId: Name or PageID of new parent or target sibling
         :param position: Defaults to move page to be child of targetPageId \
@@ -450,22 +414,16 @@ class Confluence(object):
     def storePageContent(self, page, space, content, convert_wiki=True, parent_page=None):
         """
         Modifies the content of a Confluence page.
-
         :param page: The page name
         :type  page: ``str``
-
         :param space: The space name
         :type  space: ``str``
-
         :param content: The page content (wiki markup or rich text)
         :type  content: ``str``
-
         :param convert_wiki: Convert content as wiki markup before updating
         :type  convert_wiki: ``bool``
-
         :param parent_page: The parent page name (optional)
         :type  parent_page: ``str``
-
         :rtype: ``bool``
         :return: `True` if succeeded
         """
@@ -495,13 +453,10 @@ class Confluence(object):
     def renderContent(self, space, page, a='', b={'style': 'clean'}):
         """
         Obtains the HTML content of a wiki page.
-
         :param page: The page name
         :type  page: ``str``
-
         :param space: The space name
         :type  space: ``str``
-
         :return: string: HTML content
         """
 
@@ -522,15 +477,11 @@ class Confluence(object):
     def convertWikiToStorageFormat(self, markup):
         """
         Converts a wiki text to it's XML/HTML format. Useful if you prefer to generate pages using wiki syntax instead of XML.
-
         Still, remember that once you cannot retrieve the original wiki text, as confluence is not storing it anymore. \
         Due to this wiki syntax is usefull only for computer generated pages.
-
         Warning: this works only with Conflucence 4.0 or newer, on older versions it will raise an error.
-
         :param markup: The wiki markup
         :type  markup: ``str``
-
         :rtype: ``str``
         :return: the text to store (HTML)
         """
@@ -545,10 +496,8 @@ class Confluence(object):
     def getPages(self, space):
         """
         Get pages in a space
-
         :param space: The space name
         :type  space: ``str``
-
         :rtype: ``list``
         :return: a list of pages in a space
         """
