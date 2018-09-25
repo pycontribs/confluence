@@ -331,7 +331,6 @@ class Confluence(object):
             filename = str(filePath).split("/")[-1]
 
             attachment = {"fileName": filename, "contentType": ty, "comment": files[filePath]}
-            
             try:
                 byts = f.read()
                 logging.info("calling addAttachment(%s, %s, %s, ...)", token, existing_page["id"], repr(attachment))
